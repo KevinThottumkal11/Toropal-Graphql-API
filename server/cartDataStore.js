@@ -35,17 +35,37 @@ function initDatabase() {
 }
 
 function addToCart(user_id, name, quantity, unit_price) {
+    if (!name || name.trim() === '') {
+        const error = new Error('Item name cannot be empty');
+        error.status = 400;
+        throw error;
+    }
+    
+    if (quantity <= 0) {
+        const error = new Error('Quantity must be positive');
+        error.status = 400;
+        throw error;
+    }
+    
+    if (unit_price < 0) {
+        const error = new Error('Price cannot be negative');
+        error.status = 400;
+        throw error;
+    }
+    
     return new Promise((resolve, reject) => {
-        db.run(`
-            INSERT INTO cart (user_id, name, quantity, unit_price)
-            VALUES (?, ?, ?, ?)
-        `, [user_id, name, quantity, unit_price], (error) => {
-            if (error) {
-                console.error(error.message);
-                reject(error);
+        db.run(
+            `INSERT INTO cart (user_id, name, quantity, unit_price)
+            VALUES (?, ?, ?, ?)`, 
+            [user_id, name, quantity, unit_price], 
+            (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
             }
-            resolve();
-        });
+        );
     });
 }
 
@@ -59,31 +79,55 @@ function listCartContents(user_id) {
     });
   }  
 
-function updateItemQuantity(user_id, name, quantity) {
+  async function updateItemQuantity(user_id, name, quantity) {
+    const exists = await checkItemExists(user_id, name);
+    if (!exists) {
+        const error = new Error('Item not found');
+        error.status = 404;
+        throw error;
+    }
+    
+    if (quantity < 0) {
+        const error = new Error('Quantity must be non-negative');
+        error.status = 400;
+        throw error;
+    }
+    
     return new Promise((resolve, reject) => {
-        db.run(`
-        UPDATE cart SET quantity = ? WHERE user_id = ? AND name = ?
-    `, [quantity, user_id, name], (error) => {
-        if (error) {
-            console.error(error.message);
-            reject(error);
-        }
-        resolve();
-    });
+        db.run(
+            `UPDATE cart SET quantity = ? WHERE user_id = ? AND name = ?`, 
+            [quantity, user_id, name], 
+            function(error) {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            }
+        );
     });
 }
 
-function removeItem(user_id, name) {
+async function removeItem(user_id, name) {
+    const exists = await checkItemExists(user_id, name);
+    if (!exists) {
+        const error = new Error('Item not found');
+        error.status = 404;
+        throw error;
+    }
+    
     return new Promise((resolve, reject) => {
-        db.run(`
-        DELETE FROM cart WHERE user_id = ? AND name = ?
-    `, [user_id, name], (error) => {
-        if (error) {
-            console.error(error.message);
-            reject(error);
-        }
-        resolve();
-    });
+        db.run(
+            `DELETE FROM cart WHERE user_id = ? AND name = ?`, 
+            [user_id, name], 
+            function(error) {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            }
+        );
     });
 }
 
@@ -98,6 +142,18 @@ function clearCart(user_id) {
         }
         resolve();
     });
+    });
+}
+
+function checkItemExists(user_id, name) {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT COUNT(*) as count FROM cart WHERE user_id = ? AND name = ?`, 
+            [user_id, name], 
+            (err, row) => {
+                if (err) return reject(err);
+                resolve(row.count > 0);
+            }
+        );
     });
 }
 
