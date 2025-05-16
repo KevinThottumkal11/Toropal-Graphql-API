@@ -79,6 +79,15 @@ function listCartContents(user_id) {
     });
   }  
 
+  function getOneItem(user_id, name) {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT * FROM cart WHERE user_id = ? AND name = ?`, [user_id, name], (err, rows) => {
+            if (err) return reject(err);
+            resolve({ items: rows });
+        })
+    }) 
+  }
+
   async function updateItemQuantity(user_id, name, quantity) {
     const exists = await checkItemExists(user_id, name);
     if (!exists) {
@@ -164,4 +173,5 @@ export {
     updateItemQuantity,
     removeItem,
     clearCart,
+    getOneItem
 };

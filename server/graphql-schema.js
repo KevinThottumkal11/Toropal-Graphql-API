@@ -1,5 +1,5 @@
 import { gql } from 'graphql-tag';
-import { addToCart, listCartContents, updateItemQuantity, removeItem, clearCart } from './cartDataStore.js';
+import { addToCart, listCartContents, updateItemQuantity, removeItem, clearCart, getOneItem } from './cartDataStore.js';
 import { GraphQLError } from 'graphql';
 
 const typeDefs = gql`
@@ -16,6 +16,7 @@ const typeDefs = gql`
 
   type Query {
     cart: Cart!
+    getOneItem(name: String!): Item!
   }
 
   type Mutation {
@@ -43,7 +44,29 @@ const resolvers = {
             } catch (error) {
                 throw formatError(error);
             }
+        },
+        getOneItem: async (_, { name }, { userToken }) => {
+            if (!userToken) {
+                throw new GraphQLError('Not Authorized!', {
+                    extensions: { code: 'UNAUTHORIZED', http: { status: 401 } }
+                });
+            }
+        
+            try {
+                const result = await getOneItem(userToken, name);
+        
+                if (!result.items || result.items.length === 0) {
+                    throw new GraphQLError('Item not found', {
+                        extensions: { code: 'NOT_FOUND', http: { status: 404 } }
+                    });
+                }
+        
+                return result.items[0];
+            } catch (error) {
+                throw formatError(error);
+            }
         }
+        
     },
     Mutation: {
         addToCart: async (_, { name, quantity, unit_price }, { userToken }) => {
