@@ -8,8 +8,7 @@ A GraphQL API for managing shopping carts, built with Apollo Server and SQLite.
 3. List cart contents with total price
 4. Update item quantities
 5. Remove items from cart
-6. Clear entire cart
-7. Error handling with appropriate response codes
+6. Clear entire cart (Bonus)
 
 ## Architecture
 This service uses:
